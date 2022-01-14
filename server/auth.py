@@ -26,7 +26,7 @@ class AuthHandler:
         }
 
         return jwt.encode(
-            pay_load, self.SECRET_KEY, algorithm=['HS256']
+            pay_load, self.SECRET_KEY, algorithm='HS256'
         )
 
     def encode_refresh_token(self):
@@ -36,7 +36,7 @@ class AuthHandler:
             'scope': 'refresh'
         }
         return jwt.encode(
-            pay_load, self.SECRET_KEY, algorithm=['HS256']
+            pay_load, self.SECRET_KEY, algorithm='HS256'
         )
 
     def decode_access_token(self, token):
