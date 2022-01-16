@@ -12,12 +12,28 @@ class AuthHandler:
     access_exp = timedelta(days=0, minutes=5)
 
     def generate_hash_password(self, password):
+        """
+        get the password and hashed it
+        :param password
+        :return: hashed password
+        """
         return self.pwd_context.hash(password)
 
     def verify_password(self, user_password, hashed_password):
+        """
+        check if the password is correct or not
+        :param user_password:
+        :param hashed_password:
+        :return:correctness of user password
+        """
         return self.pwd_context.verify(user_password, hashed_password)
 
     def encode_access(self, user_name):
+        """
+        encode access token
+        :param user_name:
+        :return: new access token
+        """
         pay_load = {
             'exp': datetime.utcnow() + self.access_exp,
             'iat': datetime.utcnow(),
@@ -30,6 +46,10 @@ class AuthHandler:
         )
 
     def encode_refresh_token(self):
+        """
+        encode refresh token
+        :return: new refresh token
+        """
         pay_load = {
             'exp': datetime.utcnow() + self.refresh_exp,
             'iat': datetime.utcnow(),
@@ -40,6 +60,11 @@ class AuthHandler:
         )
 
     def decode_access_token(self, token):
+        """
+        decode access token otherwise raise 401
+        :param token: access token
+        :return:
+        """
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=["HS256"])
             return payload["sub"]
@@ -49,6 +74,13 @@ class AuthHandler:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
 
     def decode_refresh_token(self, token):
+        """
+        decode refresh token and if the token wasn't expired call
+        encode_access to generate new access token and if there was
+         problem it will return 401
+        :param token: refresh token
+        :return:
+        """
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=["HS256"])
             user_name = payload["sub"]

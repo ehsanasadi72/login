@@ -27,10 +27,24 @@ class MongoStorage:
         self.mongo = MongoSingleton()
 
     def store_one(self, data, collection, *args):
+        """
+        store the data in collection
+        :param data:
+        :param collection:
+        :param args:
+        :return:
+        """
         collection = getattr(self.mongo.db, collection)
         collection.insert_one(data)
 
     def load_one(self, collection_name, filter_name=None):
+        """
+        load the first data from database that matches the filter_name
+        :param collection_name:name of collection
+        :param filter_name:should write filter for what
+         to return from database
+        :return:
+        """
         collection = self.mongo.db[collection_name]
         if filter_name is not None:
             data = collection.find_one(filter_name)
