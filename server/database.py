@@ -2,10 +2,10 @@ from pymongo import MongoClient
 
 
 class MongoSingleton:
-    instance = None
+    instance = {}
 
     @classmethod
-    def __new__(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs):
         if cls.instance is None:
             cls.instance = super().__new__(*args, **kwargs)
         return cls.instance
@@ -14,17 +14,19 @@ class MongoSingleton:
         self.client = MongoClient()
         self.db = self.client['login']
 
+
+class MongoConnection(MongoSingleton):
+
     def __enter__(self):
-        return self.client
+        print('enter')
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        print('exit')
         self.client.close()
 
 
-class MongoStorage:
-
-    def __init__(self):
-        self.mongo = MongoSingleton()
+class MongoStorage(MongoSingleton):
 
     def store_one(self, data, collection, *args):
         """
@@ -34,7 +36,7 @@ class MongoStorage:
         :param args:
         :return:
         """
-        collection = getattr(self.mongo.db, collection)
+        collection = getattr(self.db, collection)
         collection.insert_one(data)
 
     def load_one(self, collection_name, filter_name=None):
@@ -45,7 +47,7 @@ class MongoStorage:
          to return from database
         :return:
         """
-        collection = self.mongo.db[collection_name]
+        collection = self.db[collection_name]
         if filter_name is not None:
             data = collection.find_one(filter_name)
         else:

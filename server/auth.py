@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime
-import jwt
+from jose import jwt
 from fastapi import HTTPException, status
 from jwt import InvalidTokenError, ExpiredSignatureError
 from passlib.context import CryptContext
@@ -9,7 +9,7 @@ class AuthHandler:
     pwd_context = CryptContext(schemes=['bcrypt'], deprecated="auto")
     SECRET_KEY = "a5cad81912ad25eb12920bf6357d799773887f77291fec95c345fd136078bf2c"
     refresh_exp = timedelta(days=1)
-    access_exp = timedelta(days=0, minutes=5)
+    access_exp = timedelta(days=0, minutes=20)
 
     def generate_hash_password(self, password):
         """
@@ -28,7 +28,7 @@ class AuthHandler:
         """
         return self.pwd_context.verify(user_password, hashed_password)
 
-    def encode_access(self, user_name):
+    def encode_access_token(self, user_name):
         """
         encode access token
         :param user_name:
@@ -45,7 +45,7 @@ class AuthHandler:
             pay_load, self.SECRET_KEY, algorithm='HS256'
         )
 
-    def encode_refresh_token(self):
+    def encode_refresh_token(self, user_name):
         """
         encode refresh token
         :return: new refresh token
@@ -53,6 +53,7 @@ class AuthHandler:
         pay_load = {
             'exp': datetime.utcnow() + self.refresh_exp,
             'iat': datetime.utcnow(),
+            'sub': user_name,
             'scope': 'refresh'
         }
         return jwt.encode(
@@ -67,7 +68,7 @@ class AuthHandler:
         """
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=["HS256"])
-            return payload["sub"]
+            return payload
         except ExpiredSignatureError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='access token has expired')
         except InvalidTokenError:
@@ -84,7 +85,7 @@ class AuthHandler:
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=["HS256"])
             user_name = payload["sub"]
-            new_access_token = self.encode_access(user_name)
+            new_access_token = self.encode_access_token(user_name)
             return new_access_token
         except ExpiredSignatureError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='refresh token has expired')
