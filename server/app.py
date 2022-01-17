@@ -1,14 +1,28 @@
-from typing import List, Dict
+from typing import Union
 
-from fastapi import FastAPI, Depends, HTTPException, status, Response
+from fastapi import FastAPI, Depends, HTTPException, status, Response, Header
+from jwt import ExpiredSignatureError, InvalidTokenError
 from .auth import AuthHandler
 from .models import AuthModel
 from .database import MongoStorage, MongoConnection
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordRequestForm
+import re
 
 app = FastAPI()
 auth_handler = AuthHandler()
-security = OAuth2PasswordBearer(tokenUrl='token')
+
+
+def check_password_strength(password: str):
+    if not re.findall('=.*[A-Z]', password):
+        return 'your password must contain at least one uppercase'
+    elif not re.findall('=.*[a-z]', password):
+        return 'your password must contain at least one lowercase'
+    elif not re.findall('=.*?[0-9]', password):
+        return 'your password must contain at least one number'
+    elif not re.findall('.{8,}', password):
+        return 'your password must contain 8 characters'
+    else:
+        return False
 
 
 @app.post('/sign_up')
@@ -25,12 +39,16 @@ def sign_up(user: AuthModel):
         if mongo.load_one('users', {'username': str(user.username)}) is not None:
             return 'Username is taken!'
     try:
-        hashed_password = auth_handler.generate_hash_password(user.password)
-        new_user = {'username': user.username, "password": hashed_password}
-        with MongoConnection():
-            mongo = MongoStorage()
-            mongo.store_one(new_user, 'users')
-        return 'you signed up successfully'
+        if check_password_strength(user.password):
+            return 'password not strong enough try again'
+        else:
+            hashed_password = auth_handler.generate_hash_password(user.password)
+            new_user = {'username': user.username, "password": hashed_password}
+            with MongoConnection():
+                mongo = MongoStorage()
+                mongo.store_one(new_user, 'users')
+            return 'you signed up successfully'
+
     except:
         return "failed to sign up please try again"
 
@@ -72,23 +90,32 @@ def login(response: Response, user_details: OAuth2PasswordRequestForm = Depends(
     response.headers['access_key'] = access_token
 
 
-def check_current_user_access_token(token: str = Depends(security)):
+def check_current_user_tokens(access: str = Header('access'), refresh: str = Header('refresh')):
     """
-    check if refresh token expired or not and generate new access token
-    :param token:
+    check if refresh token expired or not and if it was expired
+    check refresh and if acceptable generate new access
+    :param access:
+    :param refresh:
     :return:
     """
-    return auth_handler.decode_access_token(token)
+    try:
+        auth_handler.decode_access_token(access)
+        print('acceptable access')
+    except:
+        auth_handler.decode_refresh_token(refresh)
+        print('acceptable refresh')
 
 
 @app.post('/protected')
-def protected(detail: AuthModel, token: str = Depends(check_current_user_access_token)):
+def protected(detail: AuthModel, token=Depends(check_current_user_tokens)):
     """
     just for test of not using authorise
+
     :param token:
     :param detail:
     :return:
     """
+
     return {'protected': detail}
 
 

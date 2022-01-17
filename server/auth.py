@@ -70,9 +70,11 @@ class AuthHandler:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=["HS256"])
             return payload
         except ExpiredSignatureError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='access token has expired')
+            return None
+            # raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='access token has expired')
         except InvalidTokenError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
+            return None
+            # raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
 
     def decode_refresh_token(self, token):
         """
@@ -88,6 +90,8 @@ class AuthHandler:
             new_access_token = self.encode_access_token(user_name)
             return new_access_token
         except ExpiredSignatureError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='refresh token has expired')
+            return None
+            # raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='refresh token has expired')
         except InvalidTokenError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
+            return None
+            # raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid token')
