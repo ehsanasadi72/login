@@ -1,5 +1,4 @@
 from typing import Union
-
 from fastapi import FastAPI, Depends, HTTPException, status, Response, Header
 from jwt import ExpiredSignatureError, InvalidTokenError
 from .auth import AuthHandler
@@ -13,13 +12,19 @@ auth_handler = AuthHandler()
 
 
 def check_password_strength(password: str):
-    if not re.findall('=.*[A-Z]', password):
+    """
+    check if the password contains 8 letters ,
+    lowercase,uppercase and number
+    :param password:
+    :return:
+    """
+    if not re.findall("(?=.*[A-Z])", password):
         return 'your password must contain at least one uppercase'
-    elif not re.findall('=.*[a-z]', password):
+    elif not re.findall("(?=.*[a-z])", password):
         return 'your password must contain at least one lowercase'
-    elif not re.findall('=.*?[0-9]', password):
+    elif not re.findall("(?=.*?[0-9])", password):
         return 'your password must contain at least one number'
-    elif not re.findall('.{8,}', password):
+    elif not re.findall("(.{8,})", password):
         return 'your password must contain 8 characters'
     else:
         return False
